@@ -1,0 +1,2 @@
+token = '5174942880:AAE-kI0HRkT0gimj1ywMHJvvAYL3rlIM6-U'
+api_owm = '015d8c791cd92e4c4094e53aafb81127'
