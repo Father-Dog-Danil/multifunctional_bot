@@ -4,6 +4,7 @@ import random
 from telebot import types
 from pyowm.owm import OWM
 from pyowm.utils.config import get_default_config
+from time import sleep
 
 bot = telebot.TeleBot(config.token)
 flag_command = 0
@@ -13,40 +14,46 @@ button1 = types.KeyboardButton('🧮калькулятор')
 button2 = types.KeyboardButton('🎲рандомайзер')
 button3 = types.KeyboardButton('🐘слон')
 button4 = types.KeyboardButton('☁погода')
+button5 = types.KeyboardButton('🤔вопрос')
+button6 = types.KeyboardButton('спит')
 button_exit = types.KeyboardButton('❌закрыть')
-markup_main.add(button1, button2, button3, button4, row_width=2)
+markup_main.add(button1, button2, button3, button4, button5, button6, row_width=3)
 markup_exit.add(button_exit)
 
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     bot.send_message(message.chat.id, f'''{message.from_user.username}, доброго времени суток, вот список моих команд:
-        "{button1.text}"
-        "{button2.text}"
-        "{button3.text}"
-        "{button4.text}"''', reply_markup=markup_main)
+"{button1.text}"
+"{button2.text}"
+"{button3.text}"
+"{button4.text}"
+"{button5.text}"''', reply_markup=markup_main)
 
 
 @bot.message_handler(func=lambda m: True)
 def chat(message):
     global flag_command
-
-    print(f'{message.from_user.username}: {message.text}')
     if message.text == button_exit.text:
         flag_command = 0
         bot.send_message(message.chat.id,
-                         f'''вот список моих команд:\n"{button1.text}"\n"{button2.text}"\n"{button3.text}"\n"{button4.text}"''',
-                         reply_markup=markup_main)
+                         f'''вот список моих команд:
+        "{button1.text}"
+        "{button2.text}"
+        "{button3.text}"
+        "{button4.text}"
+        "{button5.text}"''', reply_markup=markup_main)
     if flag_command == 0:
         if message.text == button1.text:
             flag_command = 1
-            bot.send_message(message.chat.id, f'''введите без пробелов:\nпервое число, знак действия, второе число.\n
-пример: 1+3\nзнаки: "+", "-", "/", "*"\nчтоб закрыть калькулятор, напишите "{button_exit.text}"''',
-                             reply_markup=markup_exit)
+            bot.send_message(message.chat.id, f'''введите без пробелов: первое число, знак действия, второе число.
+            пример: 1+3
+знаки: "+", "-", "/", "*"
+чтоб закрыть калькулятор, напишите "{button_exit.text}"''', reply_markup=markup_exit)
         elif message.text == button2.text:
             flag_command = 2
             bot.send_message(message.chat.id, f'''введите два числа через пробел, между которыми будет диапозон.
-\nчтоб закрыть рандомайзер, напишите "{button_exit.text}"''', reply_markup=markup_exit)
+чтоб закрыть рандомайзер, напишите "{button_exit.text}"''', reply_markup=markup_exit)
         elif message.text == button3.text:
             flag_command = 3
             bot.send_message(message.chat.id, f'чтоб закрыть игру "слон", напишите "{button_exit.text}"',
@@ -55,6 +62,11 @@ def chat(message):
             flag_command = 4
             bot.send_message(message.chat.id,
                              f'введите название города. чтобы вернуться в меню, напишите "{button_exit.text}"',
+                             reply_markup=markup_exit)
+        elif message.text == button5.text:
+            flag_command = 5
+            bot.send_message(message.chat.id,
+                             f'задайте вопрос и бот ответит. чтобы вернуться в меню, напишите "{button_exit.text}"',
                              reply_markup=markup_exit)
         elif message.text != button_exit.text:
             bot.reply_to(message, 'у меня нет таких функций :(')
@@ -66,6 +78,15 @@ def chat(message):
         elephant(message)
     elif flag_command == 4:
         weather(message)
+    elif flag_command == 5:
+        questions(message)
+
+
+def questions(message):
+    if random.randint(0, 1):
+        bot.reply_to(message, f'да')
+    else:
+        bot.reply_to(message, f'нет')
 
 
 def elephant(message):
@@ -135,4 +156,6 @@ def weather(message):
         bot.reply_to(message, 'мы не нашли данного места :(')
 
 
-bot.infinity_polling()
+while True:
+        try: bot.polling(none_stop=True)
+        except Exception as _ex: sleep(15)
