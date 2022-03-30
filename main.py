@@ -1,73 +1,85 @@
 import telebot
 import config
+import PIL
+from PIL import Image, ImageDraw
 import random
 from telebot import types
 from pyowm.owm import OWM
 from pyowm.utils.config import get_default_config
 from time import sleep
+import datetime
 
 bot = telebot.TeleBot(config.token)
 flag_command = 0
+flag_image = 0
 markup_main = types.ReplyKeyboardMarkup(resize_keyboard=True)
 markup_exit = types.ReplyKeyboardMarkup(resize_keyboard=True)
-button1 = types.KeyboardButton('🧮калькулятор')
-button2 = types.KeyboardButton('🎲рандомайзер')
-button3 = types.KeyboardButton('🐘слон')
-button4 = types.KeyboardButton('☁погода')
-button5 = types.KeyboardButton('🤔вопрос')
-button6 = types.KeyboardButton('спит')
+markup_image = types.ReplyKeyboardMarkup(resize_keyboard=True)
+button_main_1 = types.KeyboardButton('🧮калькулятор')
+button_main_2 = types.KeyboardButton('🎲рандомайзер')
+button_main_3 = types.KeyboardButton('🐘слон')
+button_main_4 = types.KeyboardButton('☁погода')
+button_main_5 = types.KeyboardButton('🤔вопрос')
+button_main_6 = types.KeyboardButton('фотошоп?')
+
+button_image_1 = types.KeyboardButton('негатив')
+button_image_2 = types.KeyboardButton('ЧБ')
+
 button_exit = types.KeyboardButton('❌закрыть')
-markup_main.add(button1, button2, button3, button4, button5, button6, row_width=3)
+
+markup_image.add(button_image_1, button_image_2, button_exit)
+
+markup_main.add(button_main_1, button_main_2, button_main_3, button_main_4, button_main_5, button_main_6, row_width=3)
 markup_exit.add(button_exit)
 
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.send_message(message.chat.id, f'''{message.from_user.username}, доброго времени суток, вот список моих команд:
-"{button1.text}"
-"{button2.text}"
-"{button3.text}"
-"{button4.text}"
-"{button5.text}"''', reply_markup=markup_main)
+    bot.send_message(message.chat.id, f'''{message.from_user.username}, вот список моих команд:
+"{button_main_1.text}"
+"{button_main_2.text}"
+"{button_main_3.text}"
+"{button_main_4.text}"
+"{button_main_5.text}"
+"{button_main_6.text}"''', reply_markup=markup_main)
 
 
-@bot.message_handler(func=lambda m: True)
+@bot.message_handler(content_types=["text", "sticker", "pinned_message", "photo", "audio"])
 def chat(message):
     global flag_command
     if message.text == button_exit.text:
         flag_command = 0
-        bot.send_message(message.chat.id,
-                         f'''вот список моих команд:
-        "{button1.text}"
-        "{button2.text}"
-        "{button3.text}"
-        "{button4.text}"
-        "{button5.text}"''', reply_markup=markup_main)
+        send_welcome(message)
     if flag_command == 0:
-        if message.text == button1.text:
+        if message.text == button_main_1.text:
             flag_command = 1
             bot.send_message(message.chat.id, f'''введите без пробелов: первое число, знак действия, второе число.
-            пример: 1+3
+пример: 1+3; 1-7; 8/2; 2*3
 знаки: "+", "-", "/", "*"
 чтоб закрыть калькулятор, напишите "{button_exit.text}"''', reply_markup=markup_exit)
-        elif message.text == button2.text:
+        elif message.text == button_main_2.text:
             flag_command = 2
             bot.send_message(message.chat.id, f'''введите два числа через пробел, между которыми будет диапозон.
 чтоб закрыть рандомайзер, напишите "{button_exit.text}"''', reply_markup=markup_exit)
-        elif message.text == button3.text:
+        elif message.text == button_main_3.text:
             flag_command = 3
             bot.send_message(message.chat.id, f'чтоб закрыть игру "слон", напишите "{button_exit.text}"',
                              reply_markup=markup_exit)
-        elif message.text == button4.text:
+        elif message.text == button_main_4.text:
             flag_command = 4
             bot.send_message(message.chat.id,
                              f'введите название города. чтобы вернуться в меню, напишите "{button_exit.text}"',
                              reply_markup=markup_exit)
-        elif message.text == button5.text:
+        elif message.text == button_main_5.text:
             flag_command = 5
             bot.send_message(message.chat.id,
                              f'задайте вопрос и бот ответит. чтобы вернуться в меню, напишите "{button_exit.text}"',
                              reply_markup=markup_exit)
+        elif message.text == button_main_6.text:
+            flag_command = 6
+            bot.send_message(message.chat.id,
+                             f'выберите параметр обработки. чтобы вернуться в меню, напишите "{button_exit.text}"',
+                             reply_markup=markup_image)
         elif message.text != button_exit.text:
             bot.reply_to(message, 'у меня нет таких функций :(')
     elif flag_command == 1:
@@ -80,6 +92,59 @@ def chat(message):
         weather(message)
     elif flag_command == 5:
         questions(message)
+    elif flag_command == 6:
+        image_re(message)
+
+
+def image_re(message):
+    global flag_image
+    if flag_image:
+        if message.content_type == 'photo':
+            raw = message.photo[2].file_id
+            name = 'data/' + message.from_user.username + '__' + str(datetime.datetime.now().timestamp()) + '.jpg'
+            file_info = bot.get_file(raw)
+            downloaded_file = bot.download_file(file_info.file_path)
+            with open(name, 'wb') as new_file:
+                new_file.write(downloaded_file)
+            image = Image.open(name)
+            draw = ImageDraw.Draw(image)
+            width = image.size[0]
+            height = image.size[1]
+            pix = image.load()
+            if flag_image == 1:
+                for x in range(width):
+                    for y in range(height):
+                        r = pix[x, y][0]
+                        g = pix[x, y][1]
+                        b = pix[x, y][2]
+                        draw.point((x, y), (255 - r, 255 - g, 255 - b))
+                image.save(name)
+            if flag_image == 2:
+                for x in range(width):
+                    for y in range(height):
+                        r = pix[x, y][0]
+                        g = pix[x, y][1]
+                        b = pix[x, y][2]
+                        sr = (r + g + b) // 3
+                        draw.point((x, y), (sr, sr, sr))
+                image.save(name)
+            img = open(name, 'rb')
+            bot.send_photo(message.chat.id, img)
+            flag_image = 0
+            bot.send_message(message.chat.id,
+                             f'выберите параметр обработки. чтобы вернуться в меню, напишите "{button_exit.text}"',
+                             reply_markup=markup_image)
+
+        else:
+            bot.send_message(message.chat.id,
+                             f'вы ввели не фото. чтобы вернуться в меню, напишите "{button_exit.text}"')
+    else:
+        if message.text == button_image_1.text:
+            flag_image = 1
+            bot.send_message(message.chat.id, f'введите фото. чтобы вернуться в меню, напишите "{button_exit.text}"')
+        elif message.text == button_image_2.text:
+            flag_image = 2
+            bot.send_message(message.chat.id, f'введите фото. чтобы вернуться в меню, напишите "{button_exit.text}"')
 
 
 def questions(message):
@@ -99,31 +164,35 @@ def calculator(message):
     line = message.text
     index = 1
     signs = ['+', '-', '*', '/']
-    for i in line:
-        if i in signs:
-            flag_calc += 1
-            sign = i
-            index = line.index(i)
-
-    if flag_calc == 1 and line[0:index].isdigit() and line[-1:index:-1].isdigit():
-        int1 = int(line[0:index])
-        int2 = int(line[index + 1:-1] + line[-1])
-        if sign == '+':
-            bot.reply_to(message, f'{int1 + int2}')
-        elif sign == '-':
-            bot.reply_to(message, f'{int1 - int2}')
-        elif sign == '/':
-            if int2 == 0:
-                bot.reply_to(message, 'на ноль делить нельзя, неуч!')
-            else:
-                if int1 / int2 != int(int1 / int2):
-                    bot.reply_to(message, f'{int1 / int2}')
-                elif int1 / int2 == int(int1 / int2):
-                    bot.reply_to(message, f'{int(int1 / int2)}')
-        elif sign == '*':
-            bot.reply_to(message, f'{int1 * int2}')
+    if message.text == '1000 - 7' or message.text == '1000-7':
+        img = open("data/ken.jpeg", 'rb')
+        bot.send_photo(message.chat.id, img, caption='Я умер, прости.')
     else:
-        bot.reply_to(message, 'ты ввёл неправильно, кек')
+        for i in line:
+            if i in signs:
+                flag_calc += 1
+                sign = i
+                index = line.index(i)
+
+        if flag_calc == 1 and line[0:index].isdigit() and line[-1:index:-1].isdigit():
+            int1 = int(line[0:index])
+            int2 = int(line[index + 1:-1] + line[-1])
+            if sign == '+':
+                bot.reply_to(message, f'{int1 + int2}')
+            elif sign == '-':
+                bot.reply_to(message, f'{int1 - int2}')
+            elif sign == '/':
+                if int2 == 0:
+                    bot.reply_to(message, 'на ноль делить нельзя, неуч!')
+                else:
+                    if int1 / int2 != int(int1 / int2):
+                        bot.reply_to(message, f'{int1 / int2}')
+                    elif int1 / int2 == int(int1 / int2):
+                        bot.reply_to(message, f'{int(int1 / int2)}')
+            elif sign == '*':
+                bot.reply_to(message, f'{int1 * int2}')
+        else:
+            bot.reply_to(message, 'ты ввёл неправильно, кек')
 
 
 def randomize(message):
@@ -137,7 +206,7 @@ def randomize(message):
             else:
                 bot.reply_to(message, str(random.randint(int1, int2)))
         else:
-            bot.reply_to(message, 'неправльный формат ввода')
+            bot.reply_to(message, 'неправильный формат ввода')
     else:
         bot.reply_to(message, 'почему у тебя не два числа...')
 
@@ -157,5 +226,5 @@ def weather(message):
 
 
 while True:
-        try: bot.polling(none_stop=True)
-        except Exception as _ex: sleep(15)
+    try: bot.polling(none_stop=True)
+    except Exception as _ex: sleep(15)
