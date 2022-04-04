@@ -22,12 +22,13 @@ button_main_4 = types.KeyboardButton('☁погода')
 button_main_5 = types.KeyboardButton('🤔вопрос')
 button_main_6 = types.KeyboardButton('фотошоп?')
 
-button_image_1 = types.KeyboardButton('негатив')
+button_image_1 = types.KeyboardButton('инверсия')
 button_image_2 = types.KeyboardButton('ЧБ')
+button_image_3 = types.KeyboardButton('сепия')
 
 button_exit = types.KeyboardButton('❌закрыть')
 
-markup_image.add(button_image_1, button_image_2, button_exit)
+markup_image.add(button_image_1, button_image_2, button_image_3, button_exit)
 
 markup_main.add(button_main_1, button_main_2, button_main_3, button_main_4, button_main_5, button_main_6, row_width=3)
 markup_exit.add(button_exit)
@@ -118,7 +119,6 @@ def image_re(message):
                         g = pix[x, y][1]
                         b = pix[x, y][2]
                         draw.point((x, y), (255 - r, 255 - g, 255 - b))
-                image.save(name)
             if flag_image == 2:
                 for x in range(width):
                     for y in range(height):
@@ -127,7 +127,25 @@ def image_re(message):
                         b = pix[x, y][2]
                         sr = (r + g + b) // 3
                         draw.point((x, y), (sr, sr, sr))
-                image.save(name)
+            if flag_image == 3:
+                depth = 32
+                for x in range(width):
+                    for y in range(height):
+                        r = pix[x, y][0]
+                        g = pix[x, y][1]
+                        b = pix[x, y][2]
+                        S = (r + g + b) // 3
+                        r = S + depth * 2
+                        g = S + depth
+                        b = S
+                        if r > 255:
+                            r = 255
+                        if b > 255:
+                            b = 255
+                        if b > 255:
+                            b = 255
+                        draw.point((x, y), (r, g, b))
+            image.save(name)
             img = open(name, 'rb')
             bot.send_photo(message.chat.id, img)
             flag_image = 0
@@ -144,6 +162,9 @@ def image_re(message):
             bot.send_message(message.chat.id, f'введите фото. чтобы вернуться в меню, напишите "{button_exit.text}"')
         elif message.text == button_image_2.text:
             flag_image = 2
+            bot.send_message(message.chat.id, f'введите фото. чтобы вернуться в меню, напишите "{button_exit.text}"')
+        elif message.text == button_image_3.text:
+            flag_image = 3
             bot.send_message(message.chat.id, f'введите фото. чтобы вернуться в меню, напишите "{button_exit.text}"')
 
 
