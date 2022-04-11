@@ -3,8 +3,6 @@ import config
 from PIL import Image, ImageDraw
 import random
 from telebot import types
-from pyowm.owm import OWM
-from pyowm.utils.config import get_default_config
 from time import sleep
 import datetime
 from func_image import *
@@ -20,9 +18,23 @@ markup_image = types.ReplyKeyboardMarkup(resize_keyboard=True)
 IB = types.KeyboardButton
 buttons_main = [IB('🧮калькулятор'), IB('🎲рандомайзер'), IB('🐘слон'), IB('☁погода'),
                 IB('🤔вопрос'), IB('фотошоп?')]
-buttons_image = [IB('инверсия'), IB('ЧБ'), IB('сепия'), IB('красный'), IB('оранжевый'),
-                 IB('жёлтый'), IB('зелёный'), IB('синий'), IB('фиолетовый')]
+buttons_main_text = ['🧮калькулятор', '🎲рандомайзер', '🐘слон', '☁погода', '🤔вопрос', 'фотошоп?']
+buttons_image = [IB('🔄инверсия'), IB('⬛◻ЧБ'), IB('🟫сепия'), IB('🟥красный'), IB('🟧оранжевый'),
+                 IB('🟨жёлтый'), IB('🟩зелёный'), IB('🟦синий'), IB('🟪фиолетовый')]
+buttons_image_text = ['🔄инверсия', '⬛◻ЧБ', '🟫сепия', '🟥красный', '🟧оранжевый',
+                      '🟨жёлтый', '🟩зелёный', '🟦синий', '🟪фиолетовый']
 button_exit = types.KeyboardButton('❌закрыть')
+list_image_func = [inversion, black_white, sepia, red, orange, yellow, green, blue, purple]
+list_text_func = ['''введите без пробелов: первое число, знак действия, второе число.
+пример: 1+3; 1-7; 8/2; 2*3
+знаки: "+", "-", "/", "*"
+чтоб закрыть калькулятор, напишите''',
+'''введите два числа через пробел, между которыми будет диапозон.
+чтоб закрыть рандомайзер, напишите''',
+'''чтоб закрыть игру "слон", напишите''',
+'''введите название города. чтобы вернуться в меню, напишите''',
+'''задайте вопрос и бот ответит. чтобы вернуться в меню, напишите''',
+'''выберите параметр обработки. чтобы вернуться в меню, напишите''']
 
 markup_image.add(*buttons_image, button_exit, row_width=5)
 markup_main.add(*buttons_main, row_width=3)
@@ -41,37 +53,15 @@ def chat(message):
         flag_command = 0
         send_welcome(message)
     if flag_command == 0:
-        if message.text == buttons_main[0].text:
-            flag_command = 1
-            bot.send_message(message.chat.id, f'''введите без пробелов: первое число, знак действия, второе число.
-пример: 1+3; 1-7; 8/2; 2*3
-знаки: "+", "-", "/", "*"
-чтоб закрыть калькулятор, напишите "{button_exit.text}"''', reply_markup=markup_exit)
-        elif message.text == buttons_main[1].text:
-            flag_command = 2
-            bot.send_message(message.chat.id, f'''введите два числа через пробел, между которыми будет диапозон.
-чтоб закрыть рандомайзер, напишите "{button_exit.text}"''', reply_markup=markup_exit)
-        elif message.text == buttons_main[2].text:
-            flag_command = 3
-            bot.send_message(message.chat.id, f'чтоб закрыть игру "слон", напишите "{button_exit.text}"',
-                             reply_markup=markup_exit)
-        elif message.text == buttons_main[3].text:
-            flag_command = 4
-            bot.send_message(message.chat.id,
-                             f'введите название города. чтобы вернуться в меню, напишите "{button_exit.text}"',
-                             reply_markup=markup_exit)
-        elif message.text == buttons_main[4].text:
-            flag_command = 5
-            bot.send_message(message.chat.id,
-                             f'задайте вопрос и бот ответит. чтобы вернуться в меню, напишите "{button_exit.text}"',
-                             reply_markup=markup_exit)
-        elif message.text == buttons_main[5].text:
-            flag_command = 6
-            bot.send_message(message.chat.id,
-                             f'выберите параметр обработки. чтобы вернуться в меню, напишите "{button_exit.text}"',
-                             reply_markup=markup_image)
-        elif message.text != button_exit.text:
-            bot.reply_to(message, 'у меня нет таких функций :(')
+        if message.text in buttons_main_text:
+            flag_command = buttons_main_text.index(message.text) + 1
+            if message.text == buttons_main_text[-1]:
+                bot.send_message(message.chat.id, f'''{list_text_func[flag_command - 1]} {button_exit.text}''',
+                                 reply_markup=markup_image)
+            else:
+                bot.send_message(message.chat.id, f'''{list_text_func[flag_command - 1]} {button_exit.text}''',
+                                 reply_markup=markup_exit)
+
     elif flag_command == 1:
         bot.reply_to(message, calculator(message.text))
     elif flag_command == 2:
@@ -96,24 +86,7 @@ def image_re(message):
             downloaded_file = bot.download_file(file_info.file_path)
             with open(name, 'wb') as new_file:
                 new_file.write(downloaded_file)
-            if flag_image == 1:
-                inversion(name)
-            elif flag_image == 2:
-                black_white(name)
-            elif flag_image == 3:
-                sepia(name)
-            elif flag_image == 4:
-                red(name)
-            elif flag_image == 5:
-                orange(name)
-            elif flag_image == 6:
-                yellow(name)
-            elif flag_image == 7:
-                green(name)
-            elif flag_image == 8:
-                blue(name)
-            elif flag_image == 9:
-                purple(name)
+            list_image_func[flag_image - 1](name)
             if flag:
                 img = open(name, 'rb')
                 bot.send_photo(message.chat.id, img)
@@ -126,29 +99,14 @@ def image_re(message):
             bot.send_message(message.chat.id,
                              f'вы ввели не фото. чтобы вернуться в меню, напишите "{button_exit.text}"')
     else:
-        if message.text == buttons_image[0].text:
-            flag_image = 1
-        elif message.text == buttons_image[1].text:
-            flag_image = 2
-        elif message.text == buttons_image[2].text:
-            flag_image = 3
-        elif message.text == buttons_image[3].text:
-            flag_image = 4
-        elif message.text == buttons_image[4].text:
-            flag_image = 5
-        elif message.text == buttons_image[5].text:
-            flag_image = 6
-        elif message.text == buttons_image[6].text:
-            flag_image = 7
-        elif message.text == buttons_image[7].text:
-            flag_image = 8
-        elif message.text == buttons_image[8].text:
-            flag_image = 9
+        if message.text in buttons_image_text:
+            flag_image = buttons_image_text.index(message.text) + 1
+        else:
+            bot.send_message(message.chat.id, 'такого фильтра у меня нет(',
+                             reply_markup=markup_image)
         if flag_image:
             bot.send_message(message.chat.id, f'скиньте фото. чтобы вернуться в меню, напишите "{button_exit.text}"',
                              reply_markup=markup_exit)
 
 
-while True:
-    try: bot.polling(none_stop=True)
-    except Exception as _ex: sleep(15)
+bot.polling()
