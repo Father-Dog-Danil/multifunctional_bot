@@ -8,6 +8,7 @@ import datetime
 from func_image import *
 from main_func import *
 
+context_users = {}
 bot = telebot.TeleBot(config.token)
 flag_command = 0
 flag_image = 0
@@ -49,31 +50,37 @@ def send_welcome(message):
 @bot.message_handler(content_types=["text", "photo"])
 def chat(message):
     global flag_command, flag_image
+    if message.chat.id in context_users:
+        flag_command = context_users[message.chat.id]
+    else:
+        context_users[message.chat.id] = 0
     if message.text == button_exit.text:
         flag_command = 0
         send_welcome(message)
     if flag_command == 0:
         if message.text in buttons_main_text:
             flag_command = buttons_main_text.index(message.text) + 1
+            context_users[message.chat.id] = flag_command
             if message.text == buttons_main_text[-1]:
                 bot.send_message(message.chat.id, f'''{list_text_func[flag_command - 1]} {button_exit.text}''',
                                  reply_markup=markup_image)
             else:
                 bot.send_message(message.chat.id, f'''{list_text_func[flag_command - 1]} {button_exit.text}''',
                                  reply_markup=markup_exit)
-
-    elif flag_command == 1:
-        bot.reply_to(message, calculator(message.text))
-    elif flag_command == 2:
-        bot.reply_to(message, randomize(message.text))
-    elif flag_command == 3:
-        bot.reply_to(message, elephant(message.text))
-    elif flag_command == 4:
-        bot.reply_to(message, weather(message.text))
-    elif flag_command == 5:
-        bot.reply_to(message, questions(message.text))
-    elif flag_command == 6:
-        image_re(message)
+    else:
+        if flag_command == 1:
+            bot.reply_to(message, calculator(message.text))
+        elif flag_command == 2:
+            bot.reply_to(message, randomize(message.text))
+        elif flag_command == 3:
+            bot.reply_to(message, elephant(message.text))
+        elif flag_command == 4:
+            bot.reply_to(message, weather(message.text))
+        elif flag_command == 5:
+            bot.reply_to(message, questions(message.text))
+        elif flag_command == 6:
+            image_re(message)
+    context_users[message.chat.id] = flag_command
 
 
 def image_re(message):
@@ -101,12 +108,11 @@ def image_re(message):
     else:
         if message.text in buttons_image_text:
             flag_image = buttons_image_text.index(message.text) + 1
+            bot.send_message(message.chat.id, f'скиньте фото. чтобы вернуться в меню, напишите "{button_exit.text}"',
+                             reply_markup=markup_exit)
         else:
             bot.send_message(message.chat.id, 'такого фильтра у меня нет(',
                              reply_markup=markup_image)
-        if flag_image:
-            bot.send_message(message.chat.id, f'скиньте фото. чтобы вернуться в меню, напишите "{button_exit.text}"',
-                             reply_markup=markup_exit)
 
 
 bot.polling()
