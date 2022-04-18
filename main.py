@@ -115,4 +115,6 @@ def image_re(message):
                              reply_markup=markup_image)
 
 
-bot.polling()
+while True:
+    try: bot.polling(none_stop=True)
+    except Exception as _ex: sleep(15)
